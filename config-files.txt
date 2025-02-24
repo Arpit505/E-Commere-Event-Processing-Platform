@@ -1,0 +1,119 @@
+# File: src/main/resources/application.yml
+spring:
+  application:
+    name: ecommerce-event-platform
+  profiles:
+    active: dev
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ${spring.application.name}-consumer-group
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    topics:
+      product-views:
+        name: product-views
+        partitions: 10
+        replication-factor: 3
+      purchases:
+        name: purchases
+        partitions: 10
+        replication-factor: 3
+
+server:
+  port: 8080
+  compression:
+    enabled: true
+  http2:
+    enabled: true
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,env
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        kafka.producer: true
+        kafka.consumer: true
+
+logging:
+  level:
+    root: INFO
+    com.dataplatform: DEBUG
+    org.apache.kafka: WARN
+    org.springframework.kafka: WARN
+
+# Application specific properties
+app:
+  event-processing:
+    batch-size: 100
+    processing-threads: 5
+  analytics:
+    retention-days: 90
+    aggregation-interval-minutes: 15
+
+---
+# File: src/main/resources/application-dev.yml
+spring:
+  config:
+    activate:
+      on-profile: dev
+  kafka:
+    bootstrap-servers: localhost:9092
+    topics:
+      product-views:
+        partitions: 3
+        replication-factor: 1
+      purchases:
+        partitions: 3
+        replication-factor: 1
+
+logging:
+  level:
+    com.dataplatform: DEBUG
+
+---
+# File: src/main/resources/application-prod.yml
+spring:
+  config:
+    activate:
+      on-profile: prod
+  kafka:
+    bootstrap-servers: kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+    consumer:
+      group-id: ${spring.application.name}-consumer-group-prod
+    topics:
+      product-views:
+        partitions: 30
+        replication-factor: 3
+      purchases:
+        partitions: 30
+        replication-factor: 3
+
+server:
+  port: ${PORT:8080}
+
+logging:
+  level:
+    root: WARN
+    com.dataplatform: INFO
+
+app:
+  event-processing:
+    batch-size: 1000
+    processing-threads: 20
+  analytics:
+    retention-days: 365
+    aggregation-interval-minutes: 5
